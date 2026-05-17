@@ -1,0 +1,5 @@
+{
+    "buildCommand": "node scripts/build-ci.mjs",
+    "installCommand": "pnpm install --frozen-lockfile",
+    "ignoreCommand": "git diff --quiet HEAD~1 HEAD -- src/ app/ public/ package.json pnpm-lock.yaml next.config.ts vercel.json"
+}

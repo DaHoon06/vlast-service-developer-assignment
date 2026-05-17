@@ -1,36 +1,273 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# VLAST 서비스 개발자 사전과제
 
-## Getting Started
+**배포 링크**: https://vlast-service-developer-assignment.vercel.app  
+**레포지토리**: https://github.com/DaHoon06/vlast-service-developer-assignment
 
-First, run the development server:
+## 목차
+
+- [게임 소개](#게임-소개)
+- [기술 스택](#기술-스택)
+- [시작하기](#시작하기)
+- [프로젝트 구조](#프로젝트-구조)
+- [주요 구현 사항](#주요-구현-사항)
+- [캐싱 전략](#캐싱-전략)
+- [테스트 전략](#테스트-전략)
+
+### 서비스 미리보기
+
+<p align="center">
+  <img src="./0_start.gif" align="center" width="40%">
+  <img src="./0_game.gif" align="center" width="40%">
+</p>
+
+---
+
+## 게임 소개
+
+### 붕어빵 타이쿤
+
+`속도`라는 키워드를 처음 봤을 때, 가장 먼저 떠오른 것은 **배달**이었습니다. 1분 1초라도 빨리 맛있는 음식을 받아보고 싶은 마음은 우리가 일상에서 가장 직관적으로 체감하는 속도라는 생각이 들었습니다.
+
+하지만 **"팬들을 위한 서비스로 어떤 웹 게임을 만들어야할까?"** 를 고민하다 보니, 단순히 배달이라는 소재만으로는 재미있는 아이디어가 쉽게 떠오르지 않았습니다.
+
+단순히 '빠름'만을 강조한 소재로는 팬과 아티스트 간의 끈끈한 유대감을 담아내기엔 다소 아쉽게 느껴졌습니다. 팬덤 서비스에서 '속도'는 단순히 빠른 것을 넘어, 적절한 타이밍에 이루어지는 티키타카(소통)가 핵심이라고 생각합니다.
+
+다시 한 번 속도라는 키워드를 되새기면서 "속도" → "배달" → "맛있는 것을 빨리 먹고 싶은 마음"으로 꼬리에 꼬리를 무는 고민을 이어가던 중, 문득 제가 좋아하는 간식인 붕어빵이 떠올랐습니다.
+
+붕어빵은 너무 일찍 꺼내면 설익고, 너무 늦게 꺼내면 타버립니다. 최적의 맛을 내기 위해서는 정확한 타이밍과 속도 조절이 필수적이라는 점이, 밀고 당기는 팬과의 소통 본질과 무척 닮아있다고 느꼈습니다.
+
+이런 아이디어 바탕으로 팬들이 가볍게 즐길 수 있는 아케이드 게임을 만들어보자 해서 "붕어빵 타이쿤" 프로젝트를 진행하게 되었습니다.
+
+### 조작 방법
+
+| 조작             | 동작               |
+| ---------------- | ------------------ |
+| 슬롯 클릭        | 굽기 시작 / 꺼내기 |
+| 숫자키 `1` ~ `9` | 굽기 시작 / 꺼내기 |
+
+### 점수 시스템
+
+각 슬롯은 굽기가 시작되면 내부 진행도(0 → 115)가 올라갑니다. 꺼내는 타이밍에 따라 점수와 판정이 달라집니다.
+
+| 판정          | 진행도 범위 | 점수               | 콤보 |
+| ------------- | ----------- | ------------------ | ---- |
+| 덜 익음       | 0 ~ 39      | -10                | 리셋 |
+| 좋아요!       | 40 ~ 74     | +50                | +1   |
+| PERFECT!!     | 75 ~ 91     | +100 + (콤보 × 10) | +1   |
+| 타기 시작!    | 92 ~ 99     | -30                | 리셋 |
+| 숯덩이 (자동) | ≥ 100       | -100               | 리셋 |
+
+- **콤보**: 연속으로 좋아요/PERFECT를 달성할수록 보너스 증가. 4초 이상 아무 동작이 없으면 리셋.
+- **종료 조건**: 60초 경과 또는 점수가 -500 미만이면 즉시 종료.
+
+### 난이도 시스템
+
+점수와 경과 시간에 따라 슬롯 진행 속도가 자동으로 빨라집니다.
+
+| 조건             | 난이도 레벨 상승 |
+| ---------------- | ---------------- |
+| 1,000점 달성마다 | +1               |
+| 15초 경과마다    | +1               |
+
+속도 = `1.2 + (난이도 레벨 × 0.3)` — 레벨이 오를수록 꺼낼 수 있는 타이밍이 좁아집니다.
+
+---
+
+## 기술 스택
+
+| 분류         | 기술                         |
+| ------------ | ---------------------------- |
+| Framework    | Next.js 15 (App Router)      |
+| Language     | TypeScript                   |
+| Styling      | Tailwind CSS v4              |
+| Animation    | Framer Motion                |
+| State        | Zustand v5                   |
+| Server State | TanStack Query v5            |
+| DB           | Supabase                     |
+| Architecture | Feature-Sliced Design (FSD)  |
+| Test         | Jest + React Testing Library |
+| Deploy       | Vercel                       |
+| Design Tool  | Figma                        |
+
+---
+
+## 시작하기
+
+- Node.js 20+
+- pnpm 10+
+- Supabase 프로젝트 (무료 플랜 가능)
+
+### 1. 의존성 설치
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install --frozen-lockfile
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. 환경 변수 설정
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cp .env.example .env
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`.env`을 열고 아래 값을 채웁니다.
 
-## Learn More
+| 변수                         | 위치                                                   |
+| ---------------------------- | ------------------------------------------------------ |
+| `SUPABASE_URL`               | Supabase 대시보드 → Settings → API → Project URL       |
+| `SUPABASE_SECRET_KEY`        | Supabase 대시보드 → Settings → API → `service_role` 키 |
+| `NEXT_PUBLIC_PRODUCTION_URL` | 배포 URL (로컬 개발 시 생략 가능)                      |
 
-To learn more about Next.js, take a look at the following resources:
+### 3. DB 테이블 초기화
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+pnpm setup:db
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **테이블이 없는 경우**: SQL을 출력합니다. Supabase 대시보드 → SQL 에디터에 붙여넣고 실행한 뒤, 스크립트를 다시 실행합니다.
+- **테이블이 있는 경우**: 캐릭터 시드 데이터(예준·노아·밤비·은호·하민)를 자동으로 삽입합니다.
 
-## Deploy on Vercel
+### 4. 개발 서버 실행
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+pnpm dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`http://localhost:3000` 에서 확인합니다.
+
+---
+
+## 프로젝트 구조
+
+Next.js App Router와 **Feature-Sliced Design(FSD)** 아키텍처를 결합했습니다.  
+라우팅은 프로젝트 루트 `app/`에, 도메인 코드는 `src/` 아래 FSD 레이어에 위치합니다.
+
+```
+├── app/                        # Next.js App Router (라우팅)
+│   ├── api/                    # Route Handlers
+│   ├── game/                   # /game 페이지
+│   └── layout.tsx
+│
+└── src/
+    ├── app/                    # 앱 설정 (providers, styles, fonts)
+    │
+    ├── pages/                  # 페이지 컴포넌트
+    │   ├── home/               # 홈 화면
+    │   └── game/               # 게임 화면
+    │
+    ├── widgets/                # 독립 UI 블록 (features + entities 조합)
+    │   ├── baking-board/       # 게임 핵심 로직 전체 (슬롯, 점수, 타이머)
+    │   ├── game-setup/         # 게임 시작 설정 UI
+    │   └── page-controls/      # 공통 페이지 컨트롤 (BGM, 랭킹 버튼)
+    │
+    ├── features/               # 사용자 인터랙션 단위
+    │   ├── character-selection/ # 캐릭터 선택
+    │   ├── game-setup/         # 닉네임 입력 / 사용자 생성
+    │   └── ranking/            # 랭킹 모달 / 게임 오버 모달
+    │
+    ├── entities/               # 도메인 객체 (표시 전용)
+    │   ├── character/          # PLAVE 멤버 캐릭터
+    │   ├── ranking/            # 랭킹 데이터
+    │   └── user/               # 사용자
+    │
+    └── shared/                 # 공통 유틸 / UI
+        ├── api/                # 외부 API (Tenor)
+        ├── config/             # 환경 변수
+        ├── lib/                # 공통 훅 · 유틸
+        ├── model/              # 전역 Zustand 스토어
+        └── ui/                 # 공통 컴포넌트 (버튼, 에러, 로딩, 붕어빵 슬롯)
+```
+
+### FSD를 선택한 이유
+
+게임·랭킹·사용자 세 가지 도메인이 UI, API, 상태를 각자 관리하는 구조이다 보니, 프로젝트가 진행될수록 파일 수 대비 의존 관계가 꼬일 확률이 높다고 판단했습니다.
+
+FSD의 **'레이어 간 단방향 의존성'** 규칙 하나로 복잡한 참조 관계를 깔끔하게 정리할 수 있었고, 같은 레이어 슬라이스끼리 서로를 참조하지 못하는 규칙으로 컴포넌트 간 의존성을 줄여줍니다.
+
+### 상태 관리 구조
+
+| 계층      | 도구              | 역할                            |
+| --------- | ----------------- | ------------------------------- |
+| 쿠키      | Next.js cookies   | 사용자 인증 토큰 (`user_token`) |
+| 전역 상태 | Zustand v5        | 게임 종료, BGM, 로딩, 세션      |
+| 게임 로컬 | useReducer        | 슬롯·점수·콤보·타이머 (60초)    |
+| 서버 상태 | TanStack Query v5 | 사용자 정보, TOP 10 랭킹        |
+
+---
+
+## 주요 구현 사항
+
+### 1. reducer 기반 게임 상태 머신
+
+게임 진행 중 발생하는 모든 상태 변화를 단일 reducer로 관리합니다. 게임 종료(`over: true`) 이후에는 RESTART 외 모든 액션을 가드로 차단합니다.
+
+```
+CLICK       → 슬롯 활성화 / 수확 판정 / 점수·콤보 갱신
+TICK        → 진행도 증가 / 타이머 감소 / 자동 숯덩이 / 난이도 조정
+CLEAR_FLOAT → 피드백 텍스트 제거
+RESTART     → 전체 상태 초기화
+```
+
+### 2. 서버·클라이언트 번들 분리
+
+서버 런타임에서만 동작하는 코드(`cookies()`, DB 접근 등)는 `index.server.ts`로 분리하고, 소비 측은 경로를 명확히 구분해 import합니다. 같은 `index.ts`에 혼재할 경우 클라이언트 번들 비대화 또는 빌드 오류가 발생할 수 있습니다.
+
+### 3. Optimistic Update 랭킹
+
+게임 종료 후 점수 제출 시, API 응답을 기다리지 않고 로컬에서 랭킹 목록을 먼저 갱신합니다. 기존 사용자는 현재 최고 점수보다 높을 때만 갱신하고, 신규 사용자는 목록에 바로 추가합니다. 제출 실패 시 이전 데이터로 자동 롤백하며, 완료 후(`onSettled`) `invalidateQueries`로 서버 데이터를 동기화합니다.
+
+### 4. SSR 재방문 사용자 확인
+
+`GameSetupServer`(서버 컴포넌트)에서 `getCurrentUser()`로 `user_token` 쿠키를 읽어, 기존 사용자면 닉네임·캐릭터 재입력 없이 바로 이어할 수 있도록 재방문 패널을 표시합니다. 클라이언트 추가 요청 없이 SSR 단계에서 분기 처리합니다.
+
+### 5. 콤보 & 캐릭터 코멘트
+
+콤보 3 이상에서 일정 구간마다 랜덤으로 PLAVE 멤버가 등장해 2.5초간 코멘트를 표시합니다(`useComboMilestone`). 게임 플레이와 팬덤 경험을 연결하는 인터랙션입니다.
+
+### 6. 난이도 레벨업 배너
+
+난이도가 상승할 때마다 배너를 2.5초간 표시합니다(`useDifficultyBanner`). reducer의 `diffLevel` 변화만 구독하며, 게임 루프와 UI 피드백 관심사를 분리합니다.
+
+---
+
+## 캐싱 전략
+
+3계층 캐싱으로 불필요한 DB 요청을 최소화합니다.
+
+```
+Browser (React Query) → Next.js 서버 캐시 (unstable_cache) → Supabase DB
+```
+
+### 계층별 설정
+
+| 데이터                | React Query staleTime | 서버 캐시 revalidate | 무효화 방식                                                    |
+| --------------------- | --------------------- | -------------------- | -------------------------------------------------------------- |
+| 사용자 (`/api/users`) | 5분                   | 없음                 | 사용자 생성 후 `invalidateQueries`                             |
+| 랭킹 (`/api/rank`)    | 1분                   | 60초                 | 점수 제출 후 `revalidateTag('rankings')` + `invalidateQueries` |
+| 캐릭터 (`/api/plave`) | `Infinity`            | 24시간               | TTL 자동 갱신                                                  |
+
+### 설계 원칙
+
+- **서버-클라이언트 일관성**: 랭킹 `staleTime`(1분)을 서버 `revalidate`(60초)와 일치시켜 캐시 레이어 간 불일치 방지.
+- **정적 데이터 무한 캐시**: 캐릭터 데이터(멤버 5명 고정)는 변경 수단이 없으므로 클라이언트 `staleTime: Infinity`, 서버는 24시간 TTL로 유지.
+- **조건부 쿼리 활성화**: 랭킹 쿼리는 `RankingModal`이 열릴 때만(`enabled: open`) 실행 — 게임 진행 중 불필요한 백그라운드 fetch 차단.
+- **낙관적 업데이트**: 점수 제출 시 API 응답 전 랭킹 목록을 즉시 갱신, 실패 시 자동 롤백.
+
+---
+
+## 테스트 전략
+
+**Jest + React Testing Library** 기반. 테스트 파일은 대상 파일과 같은 세그먼트 내 `__tests__/` 디렉터리에 위치합니다.
+
+### 계층별 기준
+
+| 세그먼트 | 기준                                                                             |
+| -------- | -------------------------------------------------------------------------------- |
+| `model`  | 상태 머신·reducer·스토어 — 모든 액션과 경계값, 게임 오버 가드 포함               |
+| `lib`    | 순수 함수·유틸·훅 — 입력 경계값과 사이드 이펙트(타이머, 이벤트 리스너 해제) 검증 |
+| `api`    | 요청 함수와 낙관적 업데이트 훅 — 성공 경로, 서버 에러 전파, 롤백, 캐시 무효화    |
+| `ui`     | 핵심 인터랙션만 (빈 렌더·스냅샷 테스트 지양)                                     |
+
+### 금지 패턴
+
+- DB·외부 API mock 남용 — 통합 테스트는 실제 의존성 사용 원칙
+- 단순 렌더 확인만 하는 스냅샷 테스트
